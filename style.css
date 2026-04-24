@@ -178,66 +178,26 @@ button { cursor: pointer; transition: 0.2s; font-weight: 600; border: none; }
 
 /* === FIXED: MOBILE RESPONSIVENESS === */
 @media screen and (max-width: 768px) {
+    /* Stack the sidebar and chat vertically instead of side-by-side */
     .chat-container {
         flex-direction: column;
     }
 
-    /* 1. Shrink the sidebar and make it a top navigation bar */
+    /* Make the sidebar take up full width, but only part of the height */
     .sidebar {
         width: 100%;
-        height: auto; /* Let it size based on content instead of percentages */
+        height: 40%;
         border-right: none;
         border-bottom: 1px solid var(--border);
     }
 
-    /* 2. Hide extra text and reduce padding to save vertical space */
-    .sidebar-header { padding: 12px 16px; }
-    .search-section { padding: 8px 16px; }
-    .search-box input { padding: 8px 8px 8px 35px; }
-    .section-title { display: none; } /* Hides "Direct Messages" text */
-
-    /* 3. Make the users list scroll HORIZONTALLY */
-    .users-list {
-        padding: 0 16px 8px 16px;
-        overflow-y: hidden;
-    }
-    
-    #users-container {
-        display: flex;
-        flex-direction: row;
-        overflow-x: auto;
-        gap: 12px;
-        padding-bottom: 5px; /* Adds breathing room for the scrollbar */
-    }
-    
-    .user-item {
-        flex-direction: column;
-        padding: 8px;
-        min-width: 70px; /* Prevents user icons from squishing */
-        justify-content: center;
-        gap: 6px;
-    }
-    
-    .user-item-info {
-        width: 100%;
-        text-align: center;
-    }
-    
-    .user-item-name {
-        font-size: 11px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 60px; /* Truncates long names with '...' */
-    }
-
-    /* 4. Let the chat area expand to take up all the remaining space */
+    /* Make the chat area fill the remaining space */
     .chat-main {
-        flex: 1;
-        height: auto;
-        min-height: 0; /* Crucial for flexbox scrolling inside the chat messages */
+        width: 100%;
+        height: 60%;
     }
 
+    /* Reduce padding on mobile for more space */
     .chat-header, .message-input-area, .chat-messages {
         padding: 12px 16px;
     }
