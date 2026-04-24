@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatApp</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <div id="auth-screen" class="auth-container">
+        <div class="auth-card">
+            <div class="auth-logo">
+                <i class="fas fa-bolt"></i>
+                <h1>ChatApp</h1>
+                <p class="tagline">Fast. Secure. Real-time.</p>
+            </div>
+            <div id="error-msg" class="error-message"></div>
+            <div class="input-group">
+                <i class="fas fa-user"></i>
+                <input type="text" id="username" placeholder="Username" autocomplete="off">
+            </div>
+            <div class="input-group">
+                <i class="fas fa-lock"></i>
+                <input type="password" id="password" placeholder="Password">
+            </div>
+            <div class="auth-buttons">
+                <button class="btn-primary" onclick="handleAuth('login')">Log In</button>
+                <button class="btn-secondary" onclick="handleAuth('signup')">Create Account</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="chat-screen" class="chat-container" style="display: none;">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="user-profile">
+                    <div class="avatar"><i class="fas fa-user"></i></div>
+                    <div class="user-info">
+                        <span id="current-user-display">Welcome!</span>
+                        <span class="status online">Online</span>
+                    </div>
+                </div>
+                <button class="logout-btn" onclick="location.reload()" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+            
+            <div class="search-section">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="user-search" placeholder="Search for users...">
+                </div>
+            </div>
+            
+            <div class="users-list" id="users-list">
+                <div class="section-title">Direct Messages</div>
+                <div id="users-container"></div>
+            </div>
+        </div>
+
+        <div class="chat-main">
+            <div class="chat-header">
+                <div class="chat-partner-info">
+                    <div class="avatar-small"><i class="fas fa-hashtag"></i></div>
+                    <div class="partner-details">
+                        <span id="partner-name">Select a conversation</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="messages-container">
+                <div class="welcome-message" id="welcome-message">
+                    <i class="fas fa-comments"></i>
+                    <h3>Your Messages</h3>
+                    <p>Select a user from the sidebar to start chatting.</p>
+                </div>
+                <div id="messages-list"></div>
+            </div>
+
+            <div class="message-input-area">
+                <div class="message-input-wrapper">
+                    <input type="text" id="message-input" placeholder="Select a user to start typing..." disabled>
+                </div>
+                <button id="send-btn" class="send-btn" onclick="sendMessage()" disabled>
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+</body>
+</html>
