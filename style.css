@@ -18,7 +18,7 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background-color: var(--bg-dark);
     color: var(--text-main);
-    height: 100vh;
+    height: 100dvh; /* FIXED: Changed from 100vh to 100dvh for mobile keyboards */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -175,3 +175,30 @@ button { cursor: pointer; transition: 0.2s; font-weight: 600; border: none; }
 .toast.show { opacity: 1; transform: translateY(0); }
 .toast.success { border-left: 4px solid var(--success); }
 .toast.error { border-left: 4px solid var(--danger); }
+
+/* === FIXED: MOBILE RESPONSIVENESS === */
+@media screen and (max-width: 768px) {
+    /* Stack the sidebar and chat vertically instead of side-by-side */
+    .chat-container {
+        flex-direction: column;
+    }
+
+    /* Make the sidebar take up full width, but only part of the height */
+    .sidebar {
+        width: 100%;
+        height: 40%;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+    }
+
+    /* Make the chat area fill the remaining space */
+    .chat-main {
+        width: 100%;
+        height: 60%;
+    }
+
+    /* Reduce padding on mobile for more space */
+    .chat-header, .message-input-area, .chat-messages {
+        padding: 12px 16px;
+    }
+}
