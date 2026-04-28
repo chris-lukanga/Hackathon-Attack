@@ -10,7 +10,6 @@
 </head>
 <body>
 
-<!-- AUTH SCREEN -->
 <div id="auth-screen" class="auth-container">
     <div class="auth-card">
         <div class="auth-logo">
@@ -34,7 +33,6 @@
     </div>
 </div>
 
-<!-- CHAT SCREEN -->
 <div id="chat-screen" class="chat-container" style="display: none;">
     <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
@@ -79,11 +77,23 @@
             </div>
             <div id="messages-list"></div>
         </div>
-        <div class="message-input-area">
-            <div class="message-input-wrapper">
-                <input type="text" id="message-input" placeholder="Select a user to start typing..." disabled>
+        
+        <div class="message-input-container" style="position: relative;">
+            <div id="attachment-preview" class="attachment-preview" style="display: none;">
+                <i class="fas fa-file-image"></i>
+                <span id="preview-filename" class="preview-filename"></span>
+                <button id="clear-attachment" title="Remove attachment"><i class="fas fa-times"></i></button>
             </div>
-            <button id="send-btn" class="send-btn" disabled><i class="fas fa-paper-plane"></i></button>
+
+            <div class="message-input-area">
+                <input type="file" id="file-input" accept="image/*,video/*" style="display: none;">
+                <button id="attach-btn" class="attach-btn" disabled><i class="fas fa-paperclip"></i></button>
+                
+                <div class="message-input-wrapper">
+                    <input type="text" id="message-input" placeholder="Select a user to start typing..." disabled>
+                </div>
+                <button id="send-btn" class="send-btn" disabled><i class="fas fa-paper-plane"></i></button>
+            </div>
         </div>
     </div>
 </div>

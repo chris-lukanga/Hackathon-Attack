@@ -12,6 +12,10 @@ let currentPartnerId = null;
 let realtimeSubscription = null;
 let pendingMessage = false;
 
+// Attachment State
+let pendingFile = null;
+const BUCKET_NAME = 'Photo'; // <--- Ensure this matches your Supabase Storage bucket name
+
 // DOM elements
 const authScreen = document.getElementById('auth-screen');
 const chatScreen = document.getElementById('chat-screen');
@@ -29,6 +33,13 @@ const menuToggle = document.getElementById('menuToggleBtn');
 const sidebarOverlay = document.getElementById('sidebar-overlay');
 const sidebar = document.getElementById('sidebar');
 
+// Attachment DOM elements
+const fileInput = document.getElementById('file-input');
+const attachBtn = document.getElementById('attach-btn');
+const attachmentPreview = document.getElementById('attachment-preview');
+const previewFilename = document.getElementById('preview-filename');
+const clearAttachmentBtn = document.getElementById('clear-attachment');
+
 // Helper functions
 function showToast(msg, type = 'info') {
     const toast = document.getElementById('toast');
@@ -38,6 +49,7 @@ function showToast(msg, type = 'info') {
 }
 
 function escapeHtml(str) {
+    if (!str) return '';
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
@@ -53,18 +65,44 @@ function scrollToBottom() {
 
 function updateSendButtonState() {
     const hasText = messageInput.value.trim().length > 0;
+    const hasAttachment = pendingFile !== null;
     const hasRoom = !!currentRoomId;
-    sendBtn.disabled = !hasText || !hasRoom;
+    
+    sendBtn.disabled = !(hasText || hasAttachment) || !hasRoom;
     messageInput.disabled = !hasRoom;
+    attachBtn.disabled = !hasRoom;
+    
     if (!hasRoom) messageInput.placeholder = "Select a user to start typing...";
     else messageInput.placeholder = `Message ${currentPartnerUsername || 'user'}...`;
 }
 
-function renderMessage(text, isMine, timestamp = new Date()) {
+function renderMessage(text, isMine, timestamp = new Date(), attachmentUrl = null) {
     const wrapper = document.createElement('div');
     wrapper.className = `message-wrapper ${isMine ? 'sent' : 'received'}`;
+    
+    let mediaHtml = '';
+    if (attachmentUrl) {
+        // Basic check if it's a video based on extension
+        const isVideo = attachmentUrl.match(/\.(mp4|webm|ogg|mov)$/i);
+        if (isVideo) {
+            mediaHtml = `<video src="${escapeHtml(attachmentUrl)}" controls class="message-media"></video>`;
+        } else {
+            mediaHtml = `<img src="${escapeHtml(attachmentUrl)}" alt="Attachment" class="message-media" loading="lazy">`;
+        }
+    }
+    
+    // Only show the text bubble if there is text
+    let textHtml = '';
+    if (text && text.trim().length > 0) {
+        textHtml = `<div class="message-bubble">${escapeHtml(text)}</div>`;
+    } else if (attachmentUrl) {
+        // If it's just media with no text, style a transparent container
+        textHtml = `<div class="message-bubble" style="background: transparent; padding: 0; border: none;"></div>`;
+    }
+
     wrapper.innerHTML = `
-        <div class="message-bubble">${escapeHtml(text)}</div>
+        ${mediaHtml}
+        ${textHtml}
         <div class="message-time">${formatTime(timestamp)}</div>
     `;
     messagesList.appendChild(wrapper);
@@ -86,7 +124,7 @@ async function loadMessageHistory() {
         else if (welcomeMessageDiv) welcomeMessageDiv.style.display = 'none';
         
         messages.forEach(msg => {
-            renderMessage(msg.content, msg.user_id === myUserId, new Date(msg.created_at));
+            renderMessage(msg.content, msg.user_id === myUserId, new Date(msg.created_at), msg.attachments);
         });
     } catch (err) {
         console.error("history error", err);
@@ -105,29 +143,64 @@ function subscribeToRealtime() {
             filter: `room_id=eq.${currentRoomId}`
         }, payload => {
             if (payload.new.user_id !== myUserId) {
-                renderMessage(payload.new.content, false, new Date(payload.new.created_at));
+                renderMessage(payload.new.content, false, new Date(payload.new.created_at), payload.new.attachments);
             }
         }).subscribe();
 }
 
-// Send message (reliable)
+// Send message (with attachment support)
 async function sendMessage() {
     const text = messageInput.value.trim();
-    if (!text || !currentRoomId || pendingMessage) return;
+    if ((!text && !pendingFile) || !currentRoomId || pendingMessage) return;
+    
     pendingMessage = true;
-    messageInput.value = '';
     updateSendButtonState();
-    renderMessage(text, true, new Date());
+    
+    // Cache the file and text
+    const fileToSend = pendingFile;
+    const textToSend = text;
+    
+    // Optimistic UI clear
+    messageInput.value = '';
+    clearAttachment();
+    
     try {
-        const { error } = await client.from('messages').insert({
+        let uploadedUrl = null;
+
+        // 1. Upload file to Storage if it exists
+        if (fileToSend) {
+            showToast("Uploading attachment...", "info");
+            const fileExt = fileToSend.name.split('.').pop();
+            const fileName = `${myUserId}-${Date.now()}.${fileExt}`;
+            
+            const { data: uploadData, error: uploadError } = await client
+                .storage
+                .from(BUCKET_NAME)
+                .upload(fileName, fileToSend);
+                
+            if (uploadError) throw uploadError;
+            
+            // Get public URL
+            const { data: publicUrlData } = client.storage.from(BUCKET_NAME).getPublicUrl(fileName);
+            uploadedUrl = publicUrlData.publicUrl;
+        }
+
+        // 2. Render locally right away for the sender
+        renderMessage(textToSend, true, new Date(), uploadedUrl);
+
+        // 3. Insert into messages table
+        const { error: dbError } = await client.from('messages').insert({
             room_id: currentRoomId,
             user_id: myUserId,
-            content: text
+            content: textToSend,
+            attachments: uploadedUrl
         });
-        if (error) throw error;
+        
+        if (dbError) throw dbError;
+        
     } catch (err) {
         console.error("send error", err);
-        showToast("Failed to send. Try again.", "error");
+        showToast("Failed to send message or attachment.", "error");
     } finally {
         pendingMessage = false;
         updateSendButtonState();
@@ -258,6 +331,14 @@ function openDrawer() {
     sidebarOverlay.classList.add('active');
 }
 
+// --- Attachment Handlers ---
+function clearAttachment() {
+    pendingFile = null;
+    fileInput.value = '';
+    attachmentPreview.style.display = 'none';
+    updateSendButtonState();
+}
+
 // --- Event Listeners ---
 document.getElementById('login-btn')?.addEventListener('click', () => handleAuth('login'));
 document.getElementById('signup-btn')?.addEventListener('click', () => handleAuth('signup'));
@@ -270,6 +351,29 @@ if (userSearch) {
 }
 menuToggle?.addEventListener('click', openDrawer);
 sidebarOverlay?.addEventListener('click', closeDrawer);
+
+// Attachment events
+attachBtn.addEventListener('click', () => {
+    if (!attachBtn.disabled) fileInput.click();
+});
+
+fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        // Limit upload size (e.g. 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            showToast("File is too large (max 5MB)", "error");
+            clearAttachment();
+            return;
+        }
+        pendingFile = file;
+        previewFilename.textContent = file.name;
+        attachmentPreview.style.display = 'flex';
+        updateSendButtonState();
+    }
+});
+
+clearAttachmentBtn.addEventListener('click', clearAttachment);
 
 // Check existing session on load
 (async () => {
